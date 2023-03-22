@@ -1,6 +1,6 @@
 blueprint:
-  name: Custom Motion and Door-activated Light with Time Range
-  description: Turn on a light with custom brightness and color temperature when motion is detected or door is opened within a specified time range.
+  name: Adaptive Motion and Door-Activated Light with Time Range
+  description:  Turn on a light with adaptive brightness and color temperature when motion is detected or a door is opened within a specified time range.
   domain: automation
   input:
     motion_entity:
@@ -22,9 +22,8 @@ blueprint:
           entity:
             domain: light
     wait_for_motion:
-      name: Door Opened Wait for Motion
-      description: >
-         If no motion is detected within this time, the lights will turn off.
+      name: Door Opened Wait Time
+      description: Time to wait for motion after the door is opened. <br> If no motion is detected within this time, the lights will turn off.
       default: 10
       selector:
         number:
@@ -32,8 +31,8 @@ blueprint:
           max: 3600
           unit_of_measurement: seconds
     no_motion_wait:
-      name: Wait Time
-      description: Time to leave the light on after last motion is detected.
+      name: Motion Timeout
+      description: Time to leave the light on after the last motion is detected.
       default: 30
       selector:
         number:
@@ -41,7 +40,7 @@ blueprint:
           max: 3600
           unit_of_measurement: seconds
     min_brightness:
-      name: Min Brightness
+      name: Minimum Brightness
       description: Minimum brightness percentage.
       default: 1
       selector:
@@ -50,7 +49,7 @@ blueprint:
           max: 100
           unit_of_measurement: '%'
     max_brightness:
-      name: Max Brightness
+      name: Maximum Brightness
       description: Maximum brightness percentage.
       default: 50
       selector:
@@ -59,16 +58,16 @@ blueprint:
           max: 100
           unit_of_measurement: '%'
     min_color_temp:
-      name: Minimum color temperature
-      description: The minimum color temperature
+      name: Minimum Color Temperature
+      description: The minimum color temperature (in mireds).
       default: 153
       selector:
         number:
           min: 153
           max: 500
     max_color_temp:
-      name: Maximum color temperature
-      description: The maximum color temperature
+      name: Maximum Color Temperature
+      description: The maximum color temperature (in mireds).
       default: 500
       selector:
         number:
@@ -76,13 +75,13 @@ blueprint:
           max: 500
     start_time:
       name: Start Time
-      description: Start time for the custom brightness and color temperature calculation.
+      description: Start time for the adaptive brightness and color temperature calculation.
       default: "07:00:00"
       selector:
         time: {}
     end_time:
       name: End Time
-      description: End time for the custom brightness and color temperature calculation.
+      description: End time for the adaptive brightness and color temperature calculation.
       default: "19:00:00"
       selector:
         time: {}
