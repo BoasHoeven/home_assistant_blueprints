@@ -58,6 +58,22 @@ blueprint:
           min: 0
           max: 100
           unit_of_measurement: '%'
+    max_color_temp:
+      name: Maximum color temperature
+      description: The maximum color temperature
+      default: 500
+      selector:
+        number:
+          min: 153
+          max: 500
+    min_color_temp:
+      name: Minimum color temperature
+      description: The minimum color temperature
+      default: 153
+      selector:
+        number:
+          min: 153
+          max: 500
     start_time:
       name: Start Time
       description: Start time for the custom brightness and color temperature calculation.
@@ -73,6 +89,8 @@ blueprint:
 variables:
   start_time: !input start_time
   end_time: !input end_time
+  min_color_temp: !input min_color_temp
+  max_color_temp: !input max_color_temp
   min_brightness: !input min_brightness
   max_brightness: !input max_brightness
 mode: restart
@@ -94,18 +112,21 @@ action:
     target: !input light_target
     data:
       color_temp: >-
+        {% set start_time_minutes = strptime(start_time, '%H:%M:%S').hour * 60 + strptime(start_time, '%H:%M:%S').minute %}
+        {% set end_time_minutes = strptime(end_time, '%H:%M:%S').hour * 60 + strptime(end_time, '%H:%M:%S').minute %}
+        {% set duration_minutes = end_time_minutes - start_time_minutes %}
+
         {% set hour = now().hour %}
         {% set minute = now().minute %}
         {% set total_minutes = hour * 60 + minute %}
-        {% set start_time = (strptime(start_time, '%H:%M:%S').hour * 60 + strptime(start_time, '%H:%M:%S').minute) %}
-        {% set end_time = (strptime(end_time, '%H:%M:%S').hour * 60 + strptime(end_time, '%H:%M:%S').minute) %}
-        {% set duration = end_time - start_time %}
-        {% set progress = (total_minutes - start_time) / duration %}
-        {% set sine_progress = (1 - cos(2 * pi * progress)) / 2 %}
-        {% if total_minutes >= start_time and total_minutes <= end_time %}
-          {{ 153 + (500 - 153) * sine_progress | float }}
+
+        {% set elapsed_minutes = total_minutes - start_time_minutes %}
+        {% set progress = elapsed_minutes / duration_minutes %}
+
+        {% if total_minutes >= start_time_minutes and total_minutes <= end_time_minutes %}
+          {{ (min_color_temp + (max_color_temp - min_color_temp) * progress) | float }}
         {% else %}
-          500
+          {{ max_color_temp }}
         {% endif %}
       brightness_pct: >-
         {% set start_time_minutes = strptime(start_time, '%H:%M:%S').hour * 60 + strptime(start_time, '%H:%M:%S').minute %}
