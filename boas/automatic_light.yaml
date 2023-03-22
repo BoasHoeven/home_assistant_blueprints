@@ -58,18 +58,18 @@ blueprint:
           min: 0
           max: 100
           unit_of_measurement: '%'
-    max_color_temp:
-      name: Maximum color temperature
-      description: The maximum color temperature
-      default: 500
-      selector:
-        number:
-          min: 153
-          max: 500
     min_color_temp:
       name: Minimum color temperature
       description: The minimum color temperature
       default: 153
+      selector:
+        number:
+          min: 153
+          max: 500
+    max_color_temp:
+      name: Maximum color temperature
+      description: The maximum color temperature
+      default: 500
       selector:
         number:
           min: 153
