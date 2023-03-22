@@ -62,17 +62,17 @@ blueprint:
       description: The minimum color temperature (in mireds).
       default: 153
       selector:
-        number:
-          min: 153
-          max: 500
+        color_temp:
+          min_mireds: 153
+          max_mireds: 500
     max_color_temp:
       name: Maximum Color Temperature
       description: The maximum color temperature (in mireds).
       default: 500
       selector:
-        number:
-          min: 153
-          max: 500
+        color_temp:
+          min_mireds: 153
+          max_mireds: 500
     start_time:
       name: Start Time
       description: Start time for the adaptive brightness and color temperature calculation.
