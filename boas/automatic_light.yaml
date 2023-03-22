@@ -1,0 +1,156 @@
+blueprint:
+  name: Custom Motion and Door-activated Light with Time Range
+  description: Turn on a light with custom brightness and color temperature when motion is detected or door is opened within a specified time range.
+  domain: automation
+  input:
+    motion_entity:
+      name: Motion Sensor
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: motion
+    door_entity:
+      name: Door Sensor
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: door
+    light_target:
+      name: Light
+      selector:
+        target:
+          entity:
+            domain: light
+    wait_for_motion:
+      name: Door Opened Wait for Motion
+      description: >
+         If no motion is detected within this time, the lights will turn off.
+      default: 10
+      selector:
+        number:
+          min: 0
+          max: 3600
+          unit_of_measurement: seconds
+    no_motion_wait:
+      name: Wait Time
+      description: Time to leave the light on after last motion is detected.
+      default: 30
+      selector:
+        number:
+          min: 0
+          max: 3600
+          unit_of_measurement: seconds
+    min_brightness:
+      name: Min Brightness
+      description: Minimum brightness percentage.
+      default: 1
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: '%'
+    max_brightness:
+      name: Max Brightness
+      description: Maximum brightness percentage.
+      default: 50
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: '%'
+    start_time:
+      name: Start Time
+      description: Start time for the custom brightness and color temperature calculation.
+      default: "07:00:00"
+      selector:
+        time: {}
+    end_time:
+      name: End Time
+      description: End time for the custom brightness and color temperature calculation.
+      default: "19:00:00"
+      selector:
+        time: {}
+variables:
+  start_time: !input start_time
+  end_time: !input end_time
+  min_brightness: !input min_brightness
+  max_brightness: !input max_brightness
+mode: restart
+max_exceeded: silent
+
+trigger:
+  - platform: state
+    entity_id: !input motion_entity
+    from: "off"
+    to: "on"
+  - platform: state
+    entity_id: !input door_entity
+    from: "off"
+    to: "on"
+
+action:
+  - alias: "Turn on the light with custom brightness and color temperature"
+    service: light.turn_on
+    target: !input light_target
+    data:
+      color_temp: >-
+        {% set hour = now().hour %}
+        {% set minute = now().minute %}
+        {% set total_minutes = hour * 60 + minute %}
+        {% set start_time = (strptime(start_time, '%H:%M:%S').hour * 60 + strptime(start_time, '%H:%M:%S').minute) %}
+        {% set end_time = (strptime(end_time, '%H:%M:%S').hour * 60 + strptime(end_time, '%H:%M:%S').minute) %}
+        {% set duration = end_time - start_time %}
+        {% set progress = (total_minutes - start_time) / duration %}
+        {% set sine_progress = (1 - cos(2 * pi * progress)) / 2 %}
+        {% if total_minutes >= start_time and total_minutes <= end_time %}
+          {{ 153 + (500 - 153) * sine_progress | float }}
+        {% else %}
+          500
+        {% endif %}
+      brightness_pct: >-
+        {% set start_time_minutes = strptime(start_time, '%H:%M:%S').hour * 60 + strptime(start_time, '%H:%M:%S').minute %}
+        {% set end_time_minutes = strptime(end_time, '%H:%M:%S').hour * 60 + strptime(end_time, '%H:%M:%S').minute %}
+        {% set duration_minutes = end_time_minutes - start_time_minutes %}
+
+        {% set hour = now().hour %}
+        {% set minute = now().minute %}
+        {% set total_minutes = hour * 60 + minute %}
+
+        {% set elapsed_minutes = total_minutes - start_time_minutes %}
+        {% set progress = elapsed_minutes / duration_minutes %}
+
+        {% set triangle_progress = 0 %}
+        {% if progress <= 0.5 %}
+          {% set triangle_progress = progress * 2 %}
+        {% else %}
+          {% set triangle_progress = 2 * (1 - progress) %}
+        {% endif %}
+
+        {% if total_minutes < start_time_minutes or total_minutes > end_time_minutes %}
+          {{ min_brightness }}
+        {% else %}
+          {{ (min_brightness + (max_brightness - min_brightness) * triangle_progress) }}
+        {% endif %}
+  - alias: "Wait the number of seconds that has been set"
+    delay: !input wait_for_motion
+  - if:
+      - type: is_no_motion
+        condition: device
+        entity_id: !input motion_entity
+        device_id: !input motion_entity
+        domain: binary_sensor
+    then: []
+    else:
+      - wait_for_trigger:
+          - type: no_motion
+            platform: device
+            entity_id: !input motion_entity
+            device_id: !input motion_entity
+            domain: binary_sensor
+            for:
+              hours: 0
+              minutes: 0
+              seconds: !input no_motion_wait
+  - alias: "Turn off the light"
+    service: light.turn_off
+    target: !input light_target
