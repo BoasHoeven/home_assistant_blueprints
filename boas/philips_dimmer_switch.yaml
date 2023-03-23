@@ -1,6 +1,6 @@
 blueprint:
-  name: MQTT Button Actions
-  description: Execute actions based on MQTT button presses
+  name: Philips Dimmer switch v2
+  description: Bind single/double press actions to buttons
   domain: automation
   input:
     mqtt_topic:
@@ -19,21 +19,36 @@ blueprint:
       description: Action to execute when the on_press button is pressed twice
       selector:
         action:
-    # up_press_action:
-    #   name: Up Press Action
-    #   description: Action to execute when the up_press button is pressed
-    #   selector:
-    #     action:
-    # down_press_action:
-    #   name: Down Press Action
-    #   description: Action to execute when the down_press button is pressed
-    #   selector:
-    #     action:
-    # off_press_action:
-    #   name: Off Press Action
-    #   description: Action to execute when the off_press button is pressed
-    #   selector:
-    #     action:
+    up_press_action:
+      name: Up Press Action
+      description: Action to execute when the up_press button is pressed
+      selector:
+        action:
+    double_up_press_action:
+      name: Up Press Action (Double press)
+      description: Action to execute when the up_press button is pressed twice
+      selector:
+        action:
+    down_press_action:
+      name: Down Press Action
+      description: Action to execute when the down_press button is pressed
+      selector:
+        action:
+    double_down_press_action:
+      name: Down Press Action (Double press)
+      description: Action to execute when the down_press button is pressed twice
+      selector:
+        action:
+    off_press_action:
+      name: Off Press Action
+      description: Action to execute when the off_press button is pressed
+      selector:
+        action:
+    double_off_press_action:
+      name: Off Press Action (Double press)
+      description: Action to execute when the off_press button is pressed twice
+      selector:
+        action:
     double_click_interval:
       name: Double Click Interval
       description: Time in seconds to consider as a double click
@@ -47,7 +62,7 @@ blueprint:
           mode: slider
     button_press_history:
       name: Required to store the last state
-      description: test
+      description: Button press history input text
       default: ''
       selector:
         entity:
@@ -55,6 +70,15 @@ blueprint:
 variables:
   button_press_history: !input button_press_history
   double_click_interval: !input double_click_interval
+  button_press_history: !input button_press_history
+  #button_states: "{{ states(button_press_history)|to_json }}"
+  # '{ "on_press": "0", "up_press": "0", "down_press": "0", "off_press": "0" }'
+  button_states: >
+    {% if states(button_press_history)|length > 0 %}
+      {{ states(button_press_history)|to_json }}
+    {% else %}
+      {{ '{ "on_press": "0", "up_press": "0", "down_press": "0", "off_press": "0" }' }}
+    {% endif %}
 
 mode: restart
 max_exceeded: silent
@@ -63,23 +87,30 @@ trigger:
   - platform: mqtt
     topic: !input mqtt_topic
     payload: 'on_press'
+  - platform: mqtt
+    topic: !input mqtt_topic
+    payload: 'up_press'
+  - platform: mqtt
+    topic: !input mqtt_topic
+    payload: 'down_press'
+  - platform: mqtt
+    topic: !input mqtt_topic
+    payload: 'off_press'
 
 action:
   - variables:
       current_time: "{{ as_timestamp(now()) }}"
-      last_press_time: >
-        {% if (states('input_text.text_helper') == '') %}
-          {{ now().timestamp() }}
-        {% else %} 
-          {{ states('input_text.text_helper') }}
-        {% endif %}
-      delta: "{{ current_time - last_press_time }}"
-      payload: "{{ trigger.payload }}" #debug
-      debug_interval: "{{ double_click_interval }}"
+      my_dict: "{{ button_states | from_json }}"
+      last_press_time: "{{ my_dict[trigger.payload] }}"
+      delta: "{{ current_time - (last_press_time|float) }}"
+      payload: "{{ trigger.payload }}" # debug
   - service: input_text.set_value
+    target:
+      entity_id: input_text.text_helper
     data:
-      entity_id: !input button_press_history
-      value: "{{ current_time }}"
+      value: >
+        {% set my_dict_updated = dict(my_dict, **{trigger.payload: current_time | string}) %}
+        {{ my_dict_updated | string }}
   - choose:
       - conditions:
           - condition: template
@@ -99,15 +130,57 @@ action:
                   - choose:
                       - conditions: []
                         sequence: !input on_press_action
-      # - conditions:
-      #     - condition: template
-      #       value_template: "{{ trigger.payload == 'up_press' }}"
-      #   sequence: !input up_press_action
-      # - conditions:
-      #     - condition: template
-      #       value_template: "{{ trigger.payload == 'down_press' }}"
-      #   sequence: !input down_press_action
-      # - conditions:
-      #     - condition: template
-      #       value_template: "{{ trigger.payload == 'off_press' }}"
-      #   sequence: !input off_press_action
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.payload == 'up_press' }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ (delta < double_click_interval) }}"
+                sequence: !input double_up_press_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ (delta > double_click_interval) }}"
+                sequence:
+                  - delay:
+                      seconds: '{{ double_click_interval }}'
+                  - choose:
+                      - conditions: []
+                        sequence: !input up_press_action
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.payload == 'down_press' }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ (delta < double_click_interval) }}"
+                sequence: !input double_down_press_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ (delta > double_click_interval) }}"
+                sequence:
+                  - delay:
+                      seconds: '{{ double_click_interval }}'
+                  - choose:
+                      - conditions: []
+                        sequence: !input down_press_action
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.payload == 'off_press' }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ (delta < double_click_interval) }}"
+                sequence: !input double_off_press_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ (delta > double_click_interval) }}"
+                sequence:
+                  - delay:
+                      seconds: '{{ double_click_interval }}'
+                  - choose:
+                      - conditions: []
+                        sequence: !input off_press_action
