@@ -6,6 +6,7 @@ blueprint:
     motion_entity:
       name: Motion Sensor
       description: The motion sensor that triggers the light.
+      default: []
       selector:
         entity:
           domain: binary_sensor
@@ -13,6 +14,7 @@ blueprint:
     door_entity:
       name: Door Sensor
       description: The door sensor that triggers the light.
+      default: []
       selector:
         entity:
           domain: binary_sensor
