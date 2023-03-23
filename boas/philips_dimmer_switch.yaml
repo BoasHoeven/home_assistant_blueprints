@@ -11,41 +11,49 @@ blueprint:
         text:
     on_press_action:
       name: On Press Action
+      default: []
       description: Action to execute when the on_press button is pressed
       selector:
         action:
     double_on_press_action:
       name: On Press Action (Double press)
+      default: []
       description: Action to execute when the on_press button is pressed twice
       selector:
         action:
     up_press_action:
       name: Up Press Action
+      default: []
       description: Action to execute when the up_press button is pressed
       selector:
         action:
     double_up_press_action:
       name: Up Press Action (Double press)
+      default: []
       description: Action to execute when the up_press button is pressed twice
       selector:
         action:
     down_press_action:
       name: Down Press Action
+      default: []
       description: Action to execute when the down_press button is pressed
       selector:
         action:
     double_down_press_action:
       name: Down Press Action (Double press)
+      default: []
       description: Action to execute when the down_press button is pressed twice
       selector:
         action:
     off_press_action:
       name: Off Press Action
+      default: []
       description: Action to execute when the off_press button is pressed
       selector:
         action:
     double_off_press_action:
       name: Off Press Action (Double press)
+      default: []
       description: Action to execute when the off_press button is pressed twice
       selector:
         action:
