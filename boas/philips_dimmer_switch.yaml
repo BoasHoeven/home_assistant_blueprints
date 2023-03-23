@@ -80,10 +80,10 @@ variables:
   double_click_interval: !input double_click_interval
   button_press_history: !input button_press_history
   button_states: >
-    {% if states(button_press_history)|length > 0 %}
+    {% if states(button_press_history) != "unknown" %}
       {{ states(button_press_history)|to_json }}
     {% else %}
-      {{ '{ "on_press": "0", "up_press": "0", "down_press": "0", "off_press": "0" }' }}
+      {{"{'on_press': '0', 'up_press': '0', 'down_press': '0', 'off_press': '0'}"|to_json}}
     {% endif %}
 
 mode: restart
@@ -111,7 +111,7 @@ action:
       delta: "{{ current_time - (last_press_time|float) }}"
   - service: input_text.set_value
     target:
-      entity_id: input_text.text_helper
+      entity_id: !input button_press_history
     data:
       value: >
         {% set my_dict_updated = dict(my_dict, **{trigger.payload: current_time | string}) %}
