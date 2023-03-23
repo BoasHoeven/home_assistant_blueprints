@@ -59,6 +59,16 @@ blueprint:
           min: 0
           max: 100
           unit_of_measurement: '%'
+    brightness_change_speed:
+      name: Brightness Change Speed
+      description: Adjust the speed of the brightness change.<br>Higher values make the change faster, lower values make it slower.
+      default: 1
+      selector:
+        number:
+          min: .1
+          max: 2
+          step: .1
+          mode: slider
     min_color_temp:
       name: Minimum Color Temperature
       description: The minimum color temperature (in mireds).
@@ -102,9 +112,10 @@ variables:
   end_time: !input end_time
   min_color_temp: !input min_color_temp
   max_color_temp: !input max_color_temp
+  color_change_speed: !input color_change_speed
   min_brightness: !input min_brightness
   max_brightness: !input max_brightness
-  color_change_speed: !input color_change_speed
+  brightness_change_speed: !input brightness_change_speed
 mode: restart
 max_exceeded: silent
 
@@ -159,10 +170,17 @@ action:
           {% set triangle_progress = 2 * (1 - progress) %}
         {% endif %}
 
+        {% set adjusted_triangle_progress = triangle_progress / brightness_change_speed %}
+        {% if adjusted_triangle_progress > 1 %}
+          {% set adjusted_triangle_progress = 1 %}
+        {% elif adjusted_triangle_progress < 0 %}
+          {% set adjusted_triangle_progress = 0 %}
+        {% endif %}
+
         {% if total_minutes < start_time_minutes or total_minutes > end_time_minutes %}
           {{ min_brightness }}
         {% else %}
-          {{ (min_brightness + (max_brightness - min_brightness) * triangle_progress) }}
+          {{ (min_brightness + (max_brightness - min_brightness) * adjusted_triangle_progress) }}
         {% endif %}
   - alias: "Wait the number of seconds that has been set"
     delay: !input wait_for_motion
