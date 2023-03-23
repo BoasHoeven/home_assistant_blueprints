@@ -71,8 +71,6 @@ variables:
   button_press_history: !input button_press_history
   double_click_interval: !input double_click_interval
   button_press_history: !input button_press_history
-  #button_states: "{{ states(button_press_history)|to_json }}"
-  # '{ "on_press": "0", "up_press": "0", "down_press": "0", "off_press": "0" }'
   button_states: >
     {% if states(button_press_history)|length > 0 %}
       {{ states(button_press_history)|to_json }}
@@ -103,7 +101,6 @@ action:
       my_dict: "{{ button_states | from_json }}"
       last_press_time: "{{ my_dict[trigger.payload] }}"
       delta: "{{ current_time - (last_press_time|float) }}"
-      payload: "{{ trigger.payload }}" # debug
   - service: input_text.set_value
     target:
       entity_id: input_text.text_helper
