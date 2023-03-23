@@ -60,7 +60,7 @@ blueprint:
     double_click_interval:
       name: Double Click Interval
       description: Time in seconds to consider as a double click
-      default: .5
+      default: 0.3
       selector:
         number:
           min: 0.1
