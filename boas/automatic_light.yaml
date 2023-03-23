@@ -5,12 +5,14 @@ blueprint:
   input:
     motion_entity:
       name: Motion Sensor
+      description: The motion sensor that triggers the light.
       selector:
         entity:
           domain: binary_sensor
           device_class: motion
     door_entity:
       name: Door Sensor
+      description: The door sensor that triggers the light.
       selector:
         entity:
           domain: binary_sensor
@@ -73,6 +75,16 @@ blueprint:
         color_temp:
           min_mireds: 153
           max_mireds: 500
+    color_change_speed:
+      name: Color Temperature Change Speed
+      description: Adjust the speed of the color temperature change.<br>Higher values make the change faster, lower values make it slower.
+      default: 1
+      selector:
+        number:
+          min: .1
+          max: 2
+          step: .1
+          mode: slider
     start_time:
       name: Start Time
       description: Start time for the adaptive brightness and color temperature calculation.
@@ -92,6 +104,7 @@ variables:
   max_color_temp: !input max_color_temp
   min_brightness: !input min_brightness
   max_brightness: !input max_brightness
+  color_change_speed: !input color_change_speed
 mode: restart
 max_exceeded: silent
 
@@ -120,7 +133,7 @@ action:
         {% set total_minutes = hour * 60 + minute %}
 
         {% set elapsed_minutes = total_minutes - start_time_minutes %}
-        {% set progress = elapsed_minutes / duration_minutes %}
+        {% set progress = (elapsed_minutes / duration_minutes) ** (1 / color_change_speed) %}
 
         {% if total_minutes >= start_time_minutes and total_minutes <= end_time_minutes %}
           {{ (min_color_temp + (max_color_temp - min_color_temp) * progress) | float }}
