@@ -1,0 +1,113 @@
+blueprint:
+  name: MQTT Button Actions
+  description: Execute actions based on MQTT button presses
+  domain: automation
+  input:
+    mqtt_topic:
+      name: MQTT Topic
+      default: zigbee2mqtt/Philips Dimmer V2/action
+      description: The MQTT topic to listen for button presses
+      selector:
+        text:
+    on_press_action:
+      name: On Press Action
+      description: Action to execute when the on_press button is pressed
+      selector:
+        action:
+    double_on_press_action:
+      name: On Press Action (Double press)
+      description: Action to execute when the on_press button is pressed twice
+      selector:
+        action:
+    # up_press_action:
+    #   name: Up Press Action
+    #   description: Action to execute when the up_press button is pressed
+    #   selector:
+    #     action:
+    # down_press_action:
+    #   name: Down Press Action
+    #   description: Action to execute when the down_press button is pressed
+    #   selector:
+    #     action:
+    # off_press_action:
+    #   name: Off Press Action
+    #   description: Action to execute when the off_press button is pressed
+    #   selector:
+    #     action:
+    double_click_interval:
+      name: Double Click Interval
+      description: Time in seconds to consider as a double click
+      default: .5
+      selector:
+        number:
+          min: 0.1
+          max: 2
+          step: 0.1
+          unit_of_measurement: seconds
+          mode: slider
+    button_press_history:
+      name: Required to store the last state
+      description: test
+      default: ''
+      selector:
+        entity:
+          domain: input_text
+variables:
+  button_press_history: !input button_press_history
+  double_click_interval: !input double_click_interval
+
+mode: restart
+max_exceeded: silent
+
+trigger:
+  - platform: mqtt
+    topic: !input mqtt_topic
+    payload: 'on_press'
+
+action:
+  - variables:
+      current_time: "{{ as_timestamp(now()) }}"
+      last_press_time: >
+        {% if (states('input_text.text_helper') == '') %}
+          {{ now().timestamp() }}
+        {% else %} 
+          {{ states('input_text.text_helper') }}
+        {% endif %}
+      delta: "{{ current_time - last_press_time }}"
+      payload: "{{ trigger.payload }}" #debug
+      debug_interval: "{{ double_click_interval }}"
+  - service: input_text.set_value
+    data:
+      entity_id: !input button_press_history
+      value: "{{ current_time }}"
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.payload == 'on_press' }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ (delta < double_click_interval) }}"
+                sequence: !input double_on_press_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ (delta > double_click_interval) }}"
+                sequence:
+                  - delay:
+                      seconds: '{{ double_click_interval }}'
+                  - choose:
+                      - conditions: []
+                        sequence: !input on_press_action
+      # - conditions:
+      #     - condition: template
+      #       value_template: "{{ trigger.payload == 'up_press' }}"
+      #   sequence: !input up_press_action
+      # - conditions:
+      #     - condition: template
+      #       value_template: "{{ trigger.payload == 'down_press' }}"
+      #   sequence: !input down_press_action
+      # - conditions:
+      #     - condition: template
+      #       value_template: "{{ trigger.payload == 'off_press' }}"
+      #   sequence: !input off_press_action
