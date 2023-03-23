@@ -1,5 +1,5 @@
 blueprint:
-  name: Philips Dimmer switch v2
+  name: Philips Dimmer Switch v2
   description: Bind single/double press actions to buttons
   domain: automation
   input:
