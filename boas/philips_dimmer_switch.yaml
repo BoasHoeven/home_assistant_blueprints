@@ -79,7 +79,6 @@ blueprint:
 variables:
   button_press_history: !input button_press_history
   double_click_interval: !input double_click_interval
-  button_press_history: !input button_press_history
   button_states: >
     {% if states(button_press_history) != "unknown" %}
       {{ states(button_press_history)|to_json }}
