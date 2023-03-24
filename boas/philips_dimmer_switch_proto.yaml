@@ -5,7 +5,7 @@ blueprint:
   domain: automation
   input:
     dimmer_switch:
-      name: Dimmer switch action
+      name: Philips Hue Dimmer Switch Action
       description: Mqtt action sensor
       default: ''
       selector:
