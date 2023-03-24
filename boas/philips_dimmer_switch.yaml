@@ -4,12 +4,13 @@ blueprint:
   source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/boas/philips_dimmer_switch.yaml
   domain: automation
   input:
-    mqtt_topic:
-      name: MQTT Topic
-      default: zigbee2mqtt/Philips Dimmer V2/action
-      description: The MQTT topic to listen for button presses
+    dimmer_switch:
+      name: Philips Hue Dimmer Switch Action
+      description: Mqtt action sensor
+      default: ''
       selector:
-        text:
+        entity:
+          domain: sensor
     on_press_action:
       name: On Press Action
       description: Action to execute when the on_press button is pressed
@@ -79,6 +80,7 @@ blueprint:
 variables:
   button_press_history: !input button_press_history
   double_click_interval: !input double_click_interval
+  buttons: "{{{'on_press': 'on_press', 'up_press': 'up_press', 'down_press': 'down_press', 'off_press': 'off_press'}}}"
   button_states: >
     {% if states(button_press_history) != "unknown" %}
       {{ states(button_press_history)|to_json }}
@@ -90,36 +92,33 @@ mode: restart
 max_exceeded: silent
 
 trigger:
-  - platform: mqtt
-    topic: !input mqtt_topic
-    payload: 'on_press'
-  - platform: mqtt
-    topic: !input mqtt_topic
-    payload: 'up_press'
-  - platform: mqtt
-    topic: !input mqtt_topic
-    payload: 'down_press'
-  - platform: mqtt
-    topic: !input mqtt_topic
-    payload: 'off_press'
+  - platform: event
+    event_type: state_changed
+    event_data:
+      entity_id: !input dimmer_switch
+
+condition:
+  - condition: template
+    value_template: "{{ trigger.event.data.new_state.state in buttons }}"
 
 action:
   - variables:
+      payload: "{{ trigger.event.data.new_state.state }}"
       current_time: "{{ as_timestamp(now()) }}"
       my_dict: "{{ button_states | from_json }}"
-      last_press_time: "{{ my_dict[trigger.payload] }}"
+      last_press_time: "{{ my_dict[payload] }}"
       delta: "{{ current_time - (last_press_time|float) }}"
   - service: input_text.set_value
     target:
       entity_id: !input button_press_history
     data:
       value: >
-        {% set my_dict_updated = dict(my_dict, **{trigger.payload: current_time | string}) %}
+        {% set my_dict_updated = dict(my_dict, **{payload: current_time | string}) %}
         {{ my_dict_updated | string }}
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ trigger.payload == 'on_press' }}"
+            value_template: "{{ payload == 'on_press' }}"
         sequence:
           - choose:
               - conditions:
@@ -137,7 +136,7 @@ action:
                         sequence: !input on_press_action
       - conditions:
           - condition: template
-            value_template: "{{ trigger.payload == 'up_press' }}"
+            value_template: "{{ payload == 'up_press' }}"
         sequence:
           - choose:
               - conditions:
@@ -155,7 +154,7 @@ action:
                         sequence: !input up_press_action
       - conditions:
           - condition: template
-            value_template: "{{ trigger.payload == 'down_press' }}"
+            value_template: "{{ payload == 'down_press' }}"
         sequence:
           - choose:
               - conditions:
@@ -173,7 +172,7 @@ action:
                         sequence: !input down_press_action
       - conditions:
           - condition: template
-            value_template: "{{ trigger.payload == 'off_press' }}"
+            value_template: "{{ payload == 'off_press' }}"
         sequence:
           - choose:
               - conditions:
