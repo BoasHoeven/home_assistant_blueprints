@@ -5,7 +5,7 @@ blueprint:
   domain: automation
   input:
     dimmer_switch:
-      name: Philips Hue Dimmer Switch Action
+      name: Dimmer switch action
       description: Mqtt action sensor
       default: ''
       selector:
@@ -78,6 +78,8 @@ blueprint:
         entity:
           domain: input_text
 variables:
+  double_press_action: !input double_on_press_action
+  up_press_action: !input double_up_press_action
   button_press_history: !input button_press_history
   double_click_interval: !input double_click_interval
   buttons: "{{{'on_press': 'on_press', 'up_press': 'up_press', 'down_press': 'down_press', 'off_press': 'off_press'}}}"
@@ -92,18 +94,18 @@ mode: restart
 max_exceeded: silent
 
 trigger:
-  - platform: event
-    event_type: state_changed
-    event_data:
-      entity_id: !input dimmer_switch
-
-condition:
-  - condition: template
-    value_template: "{{ trigger.event.data.new_state.state in buttons }}"
+  - platform: state
+    entity_id: !input dimmer_switch
+    to: 
+      - 'on_press'
+      - 'up_press'
+      - 'down_press'
+      - 'off_press'
 
 action:
   - variables:
-      payload: "{{ trigger.event.data.new_state.state }}"
+      test: "{{ trigger.to_state.state }}"
+      payload: "{{ trigger.to_state.state }}"
       current_time: "{{ as_timestamp(now()) }}"
       my_dict: "{{ button_states | from_json }}"
       last_press_time: "{{ my_dict[payload] }}"
@@ -129,10 +131,19 @@ action:
                   - condition: template
                     value_template: "{{ (delta > double_click_interval) }}"
                 sequence:
-                  - delay:
-                      seconds: '{{ double_click_interval }}'
                   - choose:
-                      - conditions: []
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ double_press_action | length > 0 }}"
+                        sequence:
+                          - delay:
+                              seconds: '{{ double_click_interval }}'
+                          - choose:
+                              - conditions: []
+                                sequence: !input on_press_action
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ double_press_action | length == 0 }}"
                         sequence: !input on_press_action
       - conditions:
           - condition: template
@@ -147,10 +158,19 @@ action:
                   - condition: template
                     value_template: "{{ (delta > double_click_interval) }}"
                 sequence:
-                  - delay:
-                      seconds: '{{ double_click_interval }}'
                   - choose:
-                      - conditions: []
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ up_press_action | length > 0 }}"
+                        sequence:
+                          - delay:
+                              seconds: '{{ double_click_interval }}'
+                          - choose:
+                              - conditions: []
+                                sequence: !input up_press_action
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ up_press_action | length == 0 }}"
                         sequence: !input up_press_action
       - conditions:
           - condition: template
