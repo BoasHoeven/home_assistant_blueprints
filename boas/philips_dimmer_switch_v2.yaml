@@ -4,59 +4,58 @@ blueprint:
   source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/boas/philips_dimmer_switch.yaml
   domain: automation
   input:
-    dimmer_switch:
-      name: Philips Hue Dimmer Switch Action
-      description: Mqtt action sensor
-      default: ''
+    mqtt_topic:
+      name: MQTT Topic
+      default: zigbee2mqtt/Philips Dimmer V2/action
+      description: The MQTT topic to listen for button presses
       selector:
-        entity:
-          domain: sensor
+        text:
     on_press_action:
       name: On Press Action
-      description: Action to execute when the on_press button is pressed
       default: []
+      description: Action to execute when the on_press button is pressed
       selector:
         action:
     double_on_press_action:
       name: On Press Action (Double press)
-      description: Action to execute when the on_press button is pressed twice
       default: []
+      description: Action to execute when the on_press button is pressed twice
       selector:
         action:
     up_press_action:
       name: Up Press Action
-      description: Action to execute when the up_press button is pressed
       default: []
+      description: Action to execute when the up_press button is pressed
       selector:
         action:
     double_up_press_action:
       name: Up Press Action (Double press)
-      description: Action to execute when the up_press button is pressed twice
       default: []
+      description: Action to execute when the up_press button is pressed twice
       selector:
         action:
     down_press_action:
       name: Down Press Action
-      description: Action to execute when the down_press button is pressed
       default: []
+      description: Action to execute when the down_press button is pressed
       selector:
         action:
     double_down_press_action:
       name: Down Press Action (Double press)
-      description: Action to execute when the down_press button is pressed twice
       default: []
+      description: Action to execute when the down_press button is pressed twice
       selector:
         action:
     off_press_action:
       name: Off Press Action
-      description: Action to execute when the off_press button is pressed
       default: []
+      description: Action to execute when the off_press button is pressed
       selector:
         action:
     double_off_press_action:
       name: Off Press Action (Double press)
-      description: Action to execute when the off_press button is pressed
       default: []
+      description: Action to execute when the off_press button is pressed twice
       selector:
         action:
     double_click_interval:
@@ -80,7 +79,7 @@ blueprint:
 variables:
   button_press_history: !input button_press_history
   double_click_interval: !input double_click_interval
-  buttons: "{{{'on_press': 'on_press', 'up_press': 'up_press', 'down_press': 'down_press', 'off_press': 'off_press'}}}"
+  button_press_history: !input button_press_history
   button_states: >
     {% if states(button_press_history) != "unknown" %}
       {{ states(button_press_history)|to_json }}
@@ -92,33 +91,36 @@ mode: restart
 max_exceeded: silent
 
 trigger:
-  - platform: event
-    event_type: state_changed
-    event_data:
-      entity_id: !input dimmer_switch
-
-condition:
-  - condition: template
-    value_template: "{{ trigger.event.data.new_state.state in buttons }}"
+  - platform: mqtt
+    topic: !input mqtt_topic
+    payload: 'on_press'
+  - platform: mqtt
+    topic: !input mqtt_topic
+    payload: 'up_press'
+  - platform: mqtt
+    topic: !input mqtt_topic
+    payload: 'down_press'
+  - platform: mqtt
+    topic: !input mqtt_topic
+    payload: 'off_press'
 
 action:
   - variables:
-      payload: "{{ trigger.event.data.new_state.state }}"
       current_time: "{{ as_timestamp(now()) }}"
       my_dict: "{{ button_states | from_json }}"
-      last_press_time: "{{ my_dict[payload] }}"
+      last_press_time: "{{ my_dict[trigger.payload] }}"
       delta: "{{ current_time - (last_press_time|float) }}"
   - service: input_text.set_value
     target:
       entity_id: !input button_press_history
     data:
       value: >
-        {% set my_dict_updated = dict(my_dict, **{payload: current_time | string}) %}
+        {% set my_dict_updated = dict(my_dict, **{trigger.payload: current_time | string}) %}
         {{ my_dict_updated | string }}
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ payload == 'on_press' }}"
+            value_template: "{{ trigger.payload == 'on_press' }}"
         sequence:
           - choose:
               - conditions:
@@ -136,7 +138,7 @@ action:
                         sequence: !input on_press_action
       - conditions:
           - condition: template
-            value_template: "{{ payload == 'up_press' }}"
+            value_template: "{{ trigger.payload == 'up_press' }}"
         sequence:
           - choose:
               - conditions:
@@ -154,7 +156,7 @@ action:
                         sequence: !input up_press_action
       - conditions:
           - condition: template
-            value_template: "{{ payload == 'down_press' }}"
+            value_template: "{{ trigger.payload == 'down_press' }}"
         sequence:
           - choose:
               - conditions:
@@ -172,7 +174,7 @@ action:
                         sequence: !input down_press_action
       - conditions:
           - condition: template
-            value_template: "{{ payload == 'off_press' }}"
+            value_template: "{{ trigger.payload == 'off_press' }}"
         sequence:
           - choose:
               - conditions:
