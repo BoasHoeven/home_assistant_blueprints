@@ -11,51 +11,51 @@ blueprint:
       selector:
         text:
     on_press_action:
-      name: On Press Action
+      name: On Button - Single Press Action
+      description: Action to execute when the On button is pressed once
       default: []
-      description: Action to execute when the on_press button is pressed
       selector:
         action:
     double_on_press_action:
-      name: On Press Action (Double press)
+      name: On Button - Double Press Action
+      description: Action to execute when the On button is pressed twice
       default: []
-      description: Action to execute when the on_press button is pressed twice
       selector:
         action:
     up_press_action:
-      name: Up Press Action
+      name: Up Button - Single Press Action
+      description: Action to execute when the Up button is pressed once
       default: []
-      description: Action to execute when the up_press button is pressed
       selector:
         action:
     double_up_press_action:
-      name: Up Press Action (Double press)
+      name: Up Button - Double Press Action
+      description: Action to execute when the Up button is pressed twice
       default: []
-      description: Action to execute when the up_press button is pressed twice
       selector:
         action:
     down_press_action:
-      name: Down Press Action
+      name: Down Button - Single Press Action
+      description: Action to execute when the Down button is pressed once
       default: []
-      description: Action to execute when the down_press button is pressed
       selector:
         action:
     double_down_press_action:
-      name: Down Press Action (Double press)
+      name: Down Button - Double Press Action
+      description: Action to execute when the Down button is pressed twice
       default: []
-      description: Action to execute when the down_press button is pressed twice
       selector:
         action:
     off_press_action:
-      name: Off Press Action
+      name: Off Button - Single Press Action
+      description: Action to execute when the Off button is pressed once
       default: []
-      description: Action to execute when the off_press button is pressed
       selector:
         action:
     double_off_press_action:
-      name: Off Press Action (Double press)
+      name: Off Button - Double Press Action
+      description: Action to execute when the Off button is pressed twice
       default: []
-      description: Action to execute when the off_press button is pressed twice
       selector:
         action:
     double_click_interval:
