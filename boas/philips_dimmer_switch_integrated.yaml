@@ -72,7 +72,7 @@ blueprint:
           mode: slider
     button_press_history:
       name: Required to store the last state
-      description: Button press history input text
+      description: Button press history input text (Set the maximum length at 255!)
       default: ''
       selector:
         entity:
@@ -82,7 +82,6 @@ variables:
   up_press_action: !input double_up_press_action
   button_press_history: !input button_press_history
   double_click_interval: !input double_click_interval
-  buttons: "{{{'on_press': 'on_press', 'up_press': 'up_press', 'down_press': 'down_press', 'off_press': 'off_press'}}}"
   button_states: >
     {% if states(button_press_history) != "unknown" %}
       {{ states(button_press_history)|to_json }}
@@ -104,7 +103,6 @@ trigger:
 
 action:
   - variables:
-      test: "{{ trigger.to_state.state }}"
       payload: "{{ trigger.to_state.state }}"
       current_time: "{{ as_timestamp(now()) }}"
       my_dict: "{{ button_states | from_json }}"
