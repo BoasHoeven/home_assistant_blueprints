@@ -130,9 +130,9 @@ action:
       value: >
         {% if "hold" in payload and not "release" in payload %}
           {% if my_dict[payload] | int < 10 %}
-              {% set my_dict_updated2 = dict(my_dict, **{payload: (my_dict[payload] | int + 1) | string}) %}
+              {% set my_dict_updated = dict(my_dict, **{payload: (my_dict[payload] | int + 1) | string}) %}
           {% else %}
-              {% set my_dict_updated2 = dict(my_dict, **{payload: "10"}) %}
+              {% set my_dict_updated = dict(my_dict, **{payload: "10"}) %}
           {% endif %}
         {% else %}
           {% if not "hold" in payload  %}
@@ -140,10 +140,10 @@ action:
           {% else %}
             {% set my_dict_updated = my_dict %}
           {% endif %}
-          {% set my_dict_updated2 = dict(my_dict_updated, **{'on_hold': '0' | string}) %}
-          {% set my_dict_updated2 = dict(my_dict_updated2, **{'off_hold': '0' | string}) %}
+          {% set my_dict_updated = dict(my_dict_updated, **{'on_hold': '0' | string}) %}
+          {% set my_dict_updated = dict(my_dict_updated, **{'off_hold': '0' | string}) %}
         {% endif %}
-        {{ my_dict_updated2 | string }}
+        {{ my_dict_updated | string }}
   - choose:
       - conditions:
           - condition: template
