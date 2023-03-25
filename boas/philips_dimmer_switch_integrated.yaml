@@ -86,7 +86,7 @@ variables:
     {% if states(button_press_history) | regex_match("^\{'on_press': '\d+(\.\d+)?', 'up_press': '\d+(\.\d+)?', 'down_press': '\d+(\.\d+)?', 'off_press': '\d+(\.\d+)?'\}$") %}
       {{ states(button_press_history)|to_json }}
     {% else %}
-      {{"{'on_press': '0', 'up_press': '0', 'down_press': '0', 'off_press': '0'}"|to_json}}
+      {{"{'on_press': '0', 'up_press': '0', 'down_press': '0', 'off_press': '0'}" | to_json}}
     {% endif %}
 
 mode: restart
