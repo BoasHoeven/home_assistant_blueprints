@@ -1,7 +1,7 @@
 blueprint:
   name: Philips Hue Dimmer Switch v2 (Integrated)
   description: Bind single/double press actions to buttons
-  source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/boas/philips_dimmer_switch.yaml
+  source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/boas/philips_dimmer_switch_integrated.yaml
   domain: automation
   input:
     dimmer_switch:
