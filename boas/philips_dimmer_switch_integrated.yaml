@@ -82,7 +82,7 @@ variables:
   up_press_action: !input double_up_press_action
   button_press_history: !input button_press_history
   double_click_interval: !input double_click_interval
-  button_states: >
+  buttons_dictionary: >
     {% if states(button_press_history) | regex_match("^\{'on_press': '\d+(\.\d+)?', 'up_press': '\d+(\.\d+)?', 'down_press': '\d+(\.\d+)?', 'off_press': '\d+(\.\d+)?'\}$") %}
       {{ states(button_press_history)|to_json }}
     {% else %}
@@ -105,7 +105,7 @@ action:
   - variables:
       payload: "{{ trigger.to_state.state }}"
       current_time: "{{ as_timestamp(now()) }}"
-      my_dict: "{{ button_states | from_json }}"
+      my_dict: "{{ buttons_dictionary | from_json }}"
       last_press_time: "{{ my_dict[payload] }}"
       delta: "{{ current_time - (last_press_time|float) }}"
   - service: input_text.set_value

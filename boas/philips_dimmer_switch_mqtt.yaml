@@ -79,12 +79,11 @@ blueprint:
 variables:
   button_press_history: !input button_press_history
   double_click_interval: !input double_click_interval
-  button_press_history: !input button_press_history
-  button_states: >
-    {% if states(button_press_history) != "unknown" %}
+  buttons_dictionary: >
+    {% if states(button_press_history) | regex_match("^\{'on_press': '\d+(\.\d+)?', 'up_press': '\d+(\.\d+)?', 'down_press': '\d+(\.\d+)?', 'off_press': '\d+(\.\d+)?'\}$") %}
       {{ states(button_press_history)|to_json }}
     {% else %}
-      {{"{'on_press': '0', 'up_press': '0', 'down_press': '0', 'off_press': '0'}"|to_json}}
+      {{"{'on_press': '0', 'up_press': '0', 'down_press': '0', 'off_press': '0'}" | to_json}}
     {% endif %}
 
 mode: restart
@@ -107,7 +106,7 @@ trigger:
 action:
   - variables:
       current_time: "{{ as_timestamp(now()) }}"
-      my_dict: "{{ button_states | from_json }}"
+      my_dict: "{{ buttons_dictionary | from_json }}"
       last_press_time: "{{ my_dict[trigger.payload] }}"
       delta: "{{ current_time - (last_press_time|float) }}"
   - service: input_text.set_value
