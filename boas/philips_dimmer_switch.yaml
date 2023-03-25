@@ -1,7 +1,7 @@
 blueprint:
-  name: Philips Hue Dimmer Switch v2 (Integrated)
+  name: Philips Hue Dimmer Switch v2
   description: Bind single/double press actions to buttons
-  source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/boas/philips_dimmer_switch_integrated.yaml
+  source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/boas/philips_dimmer_switch.yaml
   domain: automation
   input:
     dimmer_switch:
@@ -12,50 +12,50 @@ blueprint:
         entity:
           domain: sensor
     on_press_action:
-      name: On Press Action
-      description: Action to execute when the on_press button is pressed
+      name: Single Press - On Button Action
+      description: Action to execute when the On button is pressed once
       default: []
       selector:
         action:
     double_on_press_action:
-      name: On Press Action (Double press)
-      description: Action to execute when the on_press button is pressed twice
+      name: Double Press - On Button Action
+      description: Action to execute when the On button is pressed twice
       default: []
       selector:
         action:
     up_press_action:
-      name: Up Press Action
-      description: Action to execute when the up_press button is pressed
+      name: Single Press - Up Button Action
+      description: Action to execute when the Up button is pressed once
       default: []
       selector:
         action:
     double_up_press_action:
-      name: Up Press Action (Double press)
-      description: Action to execute when the up_press button is pressed twice
+      name: Double Press - Up Button Action
+      description: Action to execute when the Up button is pressed twice
       default: []
       selector:
         action:
     down_press_action:
-      name: Down Press Action
-      description: Action to execute when the down_press button is pressed
+      name: Single Press - Down Button Action
+      description: Action to execute when the Down button is pressed once
       default: []
       selector:
         action:
     double_down_press_action:
-      name: Down Press Action (Double press)
-      description: Action to execute when the down_press button is pressed twice
+      name: Double Press - Down Button Action
+      description: Action to execute when the Down button is pressed twice
       default: []
       selector:
         action:
     off_press_action:
-      name: Off Press Action
-      description: Action to execute when the off_press button is pressed
+      name: Single Press - Off Button Action
+      description: Action to execute when the Off button is pressed once
       default: []
       selector:
         action:
     double_off_press_action:
-      name: Off Press Action (Double press)
-      description: Action to execute when the off_press button is pressed
+      name: Double Press - Off Button Action
+      description: Action to execute when the Off button is pressed twice
       default: []
       selector:
         action:
