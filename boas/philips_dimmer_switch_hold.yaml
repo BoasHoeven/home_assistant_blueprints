@@ -41,12 +41,6 @@ blueprint:
       default: []
       selector:
         action:
-    up_hold_action:
-      name: Up Button - On Hold Action
-      description: Action to execute when the Up button is held
-      default: []
-      selector:
-        action:
     down_press_action:
       name: Down Button - Single Press Action
       description: Action to execute when the Down button is pressed once
@@ -56,12 +50,6 @@ blueprint:
     double_down_press_action:
       name: Down Button - Double Press Action
       description: Action to execute when the Down button is pressed twice
-      default: []
-      selector:
-        action:
-    down_hold_action:
-      name: Down Button - On Hold Action
-      description: Action to execute when the Down button is held
       default: []
       selector:
         action:
@@ -101,10 +89,10 @@ variables:
   button_press_history: !input button_press_history
   double_click_interval: !input double_click_interval
   buttons_dictionary: >
-    {% if states(button_press_history) | regex_match("^\{'on_press_release': '\d+(\.\d+)?', 'on_hold': '\d+(\.\d+)?', 'up_press_release': '\d+(\.\d+)?', 'up_hold': '\d+(\.\d+)?', 'down_press_release': '\d+(\.\d+)?', 'down_hold': '\d+(\.\d+)?', 'off_press': '\d+(\.\d+)?'\}$") %}
+    {% if states(button_press_history) | regex_match("^\{'on_press_release': '\d+(\.\d+)?', 'on_hold': '\d+(\.\d+)?', 'up_press_release': '\d+(\.\d+)?', 'down_press_release': '\d+(\.\d+)?', 'off_press': '\d+(\.\d+)?'\}$") %}
       {{ states(button_press_history)|to_json }}
     {% else %}
-      {{"{'on_press_release': '0', 'on_hold': '0', 'up_press_release': '0', 'up_hold': '0', 'down_press_release': '0', 'down_hold': '0', 'off_press': '0'}" | to_json}}
+      {{"{'on_press_release': '0', 'on_hold': '0', 'up_press_release': '0', 'down_press_release': '0', 'off_press': '0'}" | to_json}}
     {% endif %}
 
 mode: restart
@@ -118,11 +106,7 @@ trigger:
       - on_hold
       - on_hold_release
       - up_press_release
-      - up_hold
-      - up_hold_release
       - down_press_release
-      - down_hold
-      - down_hold_release
       - off_press
 
 action:
@@ -149,8 +133,6 @@ action:
             {% set my_dict_updated = my_dict %}
           {% endif %}
           {% set my_dict_updated2 = dict(my_dict_updated, **{'on_hold': '0' | string}) %}
-          {% set my_dict_updated2 = dict(my_dict_updated, **{'up_hold': '0' | string}) %}
-          {% set my_dict_updated2 = dict(my_dict_updated, **{'down_hold': '0' | string}) %}
         {% endif %}
         {{ my_dict_updated2 | string }}
   - choose:
@@ -158,14 +140,6 @@ action:
           - condition: template
             value_template: "{{ payload == 'on_hold' and last_press_time == 0 }}"
         sequence: !input on_hold_action
-      - conditions:
-          - condition: template
-            value_template: "{{ payload == 'up_hold' and last_press_time == 0 }}"
-        sequence: !input up_hold_action
-      - conditions:
-          - condition: template
-            value_template: "{{ payload == 'down_hold' and last_press_time == 0 }}"
-        sequence: !input down_hold_action
       - conditions:
           - condition: template
             value_template: "{{ payload == 'on_press_release' }}"
