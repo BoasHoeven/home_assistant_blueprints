@@ -12,49 +12,49 @@ blueprint:
         entity:
           domain: sensor
     on_press_action:
-      name: Single Press - On Button Action
+      name: On Button - Single Press Action
       description: Action to execute when the On button is pressed once
       default: []
       selector:
         action:
     double_on_press_action:
-      name: Double Press - On Button Action
+      name: On Button - Double Press Action
       description: Action to execute when the On button is pressed twice
       default: []
       selector:
         action:
     up_press_action:
-      name: Single Press - Up Button Action
+      name: Up Button - Single Press Action
       description: Action to execute when the Up button is pressed once
       default: []
       selector:
         action:
     double_up_press_action:
-      name: Double Press - Up Button Action
+      name: Up Button - Double Press Action
       description: Action to execute when the Up button is pressed twice
       default: []
       selector:
         action:
     down_press_action:
-      name: Single Press - Down Button Action
+      name: Down Button - Single Press Action
       description: Action to execute when the Down button is pressed once
       default: []
       selector:
         action:
     double_down_press_action:
-      name: Double Press - Down Button Action
+      name: Down Button - Double Press Action
       description: Action to execute when the Down button is pressed twice
       default: []
       selector:
         action:
     off_press_action:
-      name: Single Press - Off Button Action
+      name: Off Button - Single Press Action
       description: Action to execute when the Off button is pressed once
       default: []
       selector:
         action:
     double_off_press_action:
-      name: Double Press - Off Button Action
+      name: Off Button - Double Press Action
       description: Action to execute when the Off button is pressed twice
       default: []
       selector:
