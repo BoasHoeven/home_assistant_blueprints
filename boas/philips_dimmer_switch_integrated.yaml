@@ -6,7 +6,7 @@ blueprint:
   input:
     dimmer_switch:
       name: Philips Hue Dimmer Switch Action
-      description: Mqtt action sensor
+      description: The action sensor of the Philips Hue Dimmer Switch
       default: ''
       selector:
         entity:
