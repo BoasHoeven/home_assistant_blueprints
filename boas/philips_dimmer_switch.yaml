@@ -96,10 +96,10 @@ trigger:
   - platform: state
     entity_id: !input dimmer_switch
     to: 
-      - 'on_press'
-      - 'up_press'
-      - 'down_press'
-      - 'off_press'
+      - on_press
+      - up_press
+      - down_press
+      - off_press
 
 action:
   - variables:
