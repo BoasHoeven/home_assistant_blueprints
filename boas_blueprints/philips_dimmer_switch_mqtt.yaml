@@ -1,7 +1,7 @@
 blueprint:
   name: Philips Hue Dimmer Switch v2 (MQTT)
   description: Bind single/double press actions to buttons
-  source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/boas/philips_dimmer_switch_mqtt.yaml
+  source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/boas_blueprints/philips_dimmer_switch_mqtt.yaml
   domain: automation
   input:
     mqtt_topic:
