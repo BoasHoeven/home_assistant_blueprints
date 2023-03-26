@@ -64,7 +64,7 @@ blueprint:
     brightness_change_speed:
       name: Brightness Change Speed
       description: Adjust the speed of the brightness change.<br>Higher values make the change faster, lower values make it slower.
-      default: 1
+      default: 0.5
       selector:
         number:
           min: .1
@@ -90,7 +90,7 @@ blueprint:
     color_change_speed:
       name: Color Temperature Change Speed
       description: Adjust the speed of the color temperature change.<br>Higher values make the change faster, lower values make it slower.
-      default: 1
+      default: 0.5
       selector:
         number:
           min: .1
@@ -106,7 +106,7 @@ blueprint:
     end_time:
       name: End Time
       description: End time for the adaptive brightness and color temperature calculation.
-      default: "19:00:00"
+      default: "00:00:00"
       selector:
         time: {}
 variables:
@@ -139,6 +139,9 @@ action:
       color_temp: >-
         {% set start_time_minutes = strptime(start_time, '%H:%M:%S').hour * 60 + strptime(start_time, '%H:%M:%S').minute %}
         {% set end_time_minutes = strptime(end_time, '%H:%M:%S').hour * 60 + strptime(end_time, '%H:%M:%S').minute %}
+        {% if end_time_minutes <= start_time_minutes %}
+          {% set end_time_minutes = end_time_minutes + 24 * 60 %}
+        {% endif %}
         {% set duration_minutes = end_time_minutes - start_time_minutes %}
 
         {% set hour = now().hour %}
@@ -156,29 +159,27 @@ action:
       brightness_pct: >-
         {% set start_time_minutes = strptime(start_time, '%H:%M:%S').hour * 60 + strptime(start_time, '%H:%M:%S').minute %}
         {% set end_time_minutes = strptime(end_time, '%H:%M:%S').hour * 60 + strptime(end_time, '%H:%M:%S').minute %}
+        {% if end_time_minutes <= start_time_minutes %}
+          {% set end_time_minutes = end_time_minutes + 24 * 60 %}
+        {% endif %}
         {% set duration_minutes = end_time_minutes - start_time_minutes %}
-
         {% set hour = now().hour %}
         {% set minute = now().minute %}
         {% set total_minutes = hour * 60 + minute %}
-
         {% set elapsed_minutes = total_minutes - start_time_minutes %}
         {% set progress = elapsed_minutes / duration_minutes %}
-
         {% set triangle_progress = 0 %}
         {% if progress <= 0.5 %}
           {% set triangle_progress = progress * 2 %}
         {% else %}
           {% set triangle_progress = 2 * (1 - progress) %}
         {% endif %}
-
         {% set adjusted_triangle_progress = triangle_progress / brightness_change_speed %}
         {% if adjusted_triangle_progress > 1 %}
           {% set adjusted_triangle_progress = 1 %}
         {% elif adjusted_triangle_progress < 0 %}
           {% set adjusted_triangle_progress = 0 %}
         {% endif %}
-
         {% if total_minutes < start_time_minutes or total_minutes > end_time_minutes %}
           {{ min_brightness }}
         {% else %}
