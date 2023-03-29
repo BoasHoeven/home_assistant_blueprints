@@ -1,0 +1,172 @@
+blueprint:
+  name: Occupancy Triggered Light with Time Range
+  description:  Turn on a light with adaptive brightness and color temperature when motion is detected or a door is opened within a specified time range.
+  source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/boas_blueprints/adaptive_light_occupancy_trigger.yaml
+  domain: automation
+  input:
+    light_target:
+      name: Light
+      selector:
+        target:
+          entity:
+            domain: light
+    presence_indicator:
+      name: Room Presence Status Indicator
+      description: Boolean that will indicate the room's presence
+      default: ''
+      selector:
+        entity:
+          domain: input_boolean
+    min_brightness:
+      name: Minimum Brightness
+      description: Minimum brightness percentage.
+      default: 1
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: '%'
+    max_brightness:
+      name: Maximum Brightness
+      description: Maximum brightness percentage.
+      default: 50
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: '%'
+    brightness_change_speed:
+      name: Brightness Change Speed
+      description: Adjust the speed of the brightness change.<br>Higher values make the change faster, lower values make it slower.
+      default: 0.5
+      selector:
+        number:
+          min: .1
+          max: 2
+          step: .1
+          mode: slider
+    min_color_temp:
+      name: Minimum Color Temperature
+      description: The minimum color temperature (in mireds).
+      default: 153
+      selector:
+        color_temp:
+          min_mireds: 153
+          max_mireds: 500
+    max_color_temp:
+      name: Maximum Color Temperature
+      description: The maximum color temperature (in mireds).
+      default: 500
+      selector:
+        color_temp:
+          min_mireds: 153
+          max_mireds: 500
+    color_change_speed:
+      name: Color Temperature Change Speed
+      description: Adjust the speed of the color temperature change.<br>Higher values make the change faster, lower values make it slower.
+      default: 0.5
+      selector:
+        number:
+          min: .1
+          max: 2
+          step: .1
+          mode: slider
+    start_time:
+      name: Start Time
+      description: Start time for the adaptive brightness and color temperature calculation.
+      default: "07:00:00"
+      selector:
+        time: {}
+    end_time:
+      name: End Time
+      description: End time for the adaptive brightness and color temperature calculation.
+      default: "00:00:00"
+      selector:
+        time: {}
+variables:
+  start_time: !input start_time
+  end_time: !input end_time
+  min_color_temp: !input min_color_temp
+  max_color_temp: !input max_color_temp
+  color_change_speed: !input color_change_speed
+  min_brightness: !input min_brightness
+  max_brightness: !input max_brightness
+  brightness_change_speed: !input brightness_change_speed
+mode: restart
+max_exceeded: silent
+
+trigger:
+  - platform: state
+    entity_id: !input presence_indicator
+    to: 
+      - 'off'
+      - 'on'
+
+action:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.to_state.state == 'on' }}"
+        sequence:
+          - service: light.turn_on
+            data:
+                color_temp: >-
+                  {% set start_time_minutes = strptime(start_time, '%H:%M:%S').hour * 60 + strptime(start_time, '%H:%M:%S').minute %}
+                  {% set end_time_minutes = strptime(end_time, '%H:%M:%S').hour * 60 + strptime(end_time, '%H:%M:%S').minute %}
+                  {% if end_time_minutes <= start_time_minutes %}
+                    {% set end_time_minutes = end_time_minutes + 24 * 60 %}
+                  {% endif %}
+                  {% set duration_minutes = end_time_minutes - start_time_minutes %}
+
+                  {% set hour = now().hour %}
+                  {% set minute = now().minute %}
+                  {% set total_minutes = hour * 60 + minute %}
+
+                  {% set elapsed_minutes = total_minutes - start_time_minutes %}
+                  {% set progress = (elapsed_minutes / duration_minutes) ** (1 / color_change_speed) %}
+
+                  {% if total_minutes >= start_time_minutes and total_minutes <= end_time_minutes %}
+                    {{ (min_color_temp + (max_color_temp - min_color_temp) * progress) | float }}
+                  {% else %}
+                    {{ max_color_temp }}
+                  {% endif %}
+                brightness_pct: >-
+                  {% set start_time_minutes = strptime(start_time, '%H:%M:%S').hour * 60 + strptime(start_time, '%H:%M:%S').minute %}
+                  {% set end_time_minutes = strptime(end_time, '%H:%M:%S').hour * 60 + strptime(end_time, '%H:%M:%S').minute %}
+                  {% if end_time_minutes <= start_time_minutes %}
+                    {% set end_time_minutes = end_time_minutes + 24 * 60 %}
+                  {% endif %}
+                  {% set duration_minutes = end_time_minutes - start_time_minutes %}
+
+                  {% set hour = now().hour %}
+                  {% set minute = now().minute %}
+                  {% set total_minutes = hour * 60 + minute %}
+
+                  {% set elapsed_minutes = total_minutes - start_time_minutes %}
+                  {% set progress = elapsed_minutes / duration_minutes %}
+
+                  {% set triangle_progress = 0 %}
+                  {% if progress <= 0.5 %}
+                    {% set triangle_progress = progress * 2 %}
+                  {% else %}
+                    {% set triangle_progress = 2 * (1 - progress) %}
+                  {% endif %}
+                  {% set adjusted_triangle_progress = triangle_progress / brightness_change_speed %}
+                  {% if adjusted_triangle_progress > 1 %}
+                    {% set adjusted_triangle_progress = 1 %}
+                  {% elif adjusted_triangle_progress < 0 %}
+                    {% set adjusted_triangle_progress = 0 %}
+                  {% endif %}
+                  {% if total_minutes < start_time_minutes or total_minutes > end_time_minutes %}
+                    {{ min_brightness }}
+                  {% else %}
+                    {{ (min_brightness + (max_brightness - min_brightness) * adjusted_triangle_progress) }}
+                  {% endif %}
+            target: !input light_target
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.to_state.state == 'off' }}"
+        sequence:
+          - service: light.turn_off
+            data: {}
+            target: !input light_target
