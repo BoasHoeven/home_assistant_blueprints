@@ -1,0 +1,176 @@
+blueprint:
+  name: Advanced Room Occupancy Detection
+  description: This blueprint is designed for rooms with a single door and one or multiple motion sensors to detect occupancy.
+  domain: automation
+  input:
+    motion_entities:
+      name: Motion Sensors
+      description: Motion sensor entities that will be used for detecting presence in the room.
+      default: []
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: motion
+          multiple: true
+    door_entity:
+      name: Door Sensor
+      description: The door sensor entity responsible for monitoring the door's status.
+      default: []
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: door
+    presence_indicator:
+      name: Room Presence Status Indicator
+      description: Boolean that will indicate the room's presence
+      default: ''
+      selector:
+        entity:
+          domain: input_boolean
+    occupancy_tracking:
+      name: Occupancy Tracking for Closed Door
+      description: A boolean entity that monitors room occupancy when the door is closed.
+      default: ''
+      selector:
+        entity:
+          domain: input_boolean
+    motion_timeout_duration:
+      name: Motion Detection Timeout
+      description: Specifies the duration before considering the room empty when no motion is detected.
+      default:
+        hours: 0
+        minutes: 0
+        seconds: 30
+      selector:
+        duration:
+    door_open_motion_wait:
+      name: Motion Detection Wait Time After Door Opening
+      description: Defines the waiting period for motion detection after the door is opened before turning off the lights.
+      default:
+        hours: 0
+        minutes: 0
+        seconds: 5
+      selector:
+        duration:
+variables:
+  occupancy_tracking: !input occupancy_tracking
+  motion_entities: !input motion_entities
+
+mode: queued
+max: 10
+max_exceeded: silent
+
+trigger:
+  - platform: state
+    entity_id: !input motion_entities
+    to: 'on'
+  - platform: state
+    entity_id: !input motion_entities
+    to: 'off'
+    for: !input motion_timeout_duration
+  - platform: state
+    entity_id: !input door_entity
+    to:
+      - 'on'
+      - 'off'
+
+action:
+  - variables:
+      trigger_class: "{{ trigger.to_state.attributes.device_class }}"
+  - choose:
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: template
+                value_template: "{{ trigger.to_state.attributes.device_class == 'motion' and trigger.to_state.state == 'off' and trigger.for != none and states(occupancy_tracking) == 'off' }}"
+        sequence:
+          - service: input_boolean.turn_off
+            data: {}
+            target:
+              entity_id:
+                - !input presence_indicator
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: template
+                value_template: "{{ trigger.to_state.attributes.device_class == 'motion' and trigger.to_state.state == 'on' }}"
+              - condition: state
+                entity_id: !input door_entity
+                state: "off"
+        sequence:
+          - service: input_boolean.turn_on
+            data: {}
+            target:
+              entity_id:
+                - !input occupancy_tracking
+                - !input presence_indicator
+      - conditions: 
+          - condition: and
+            conditions:
+              - condition: template
+                value_template: "{{ trigger.to_state.attributes.device_class == 'motion' and trigger.to_state.state == 'on' }}"
+        sequence:
+          - service: input_boolean.turn_on
+            data: {}
+            target:
+              entity_id: !input presence_indicator
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: state
+                entity_id: !input presence_indicator
+                state: "on"
+              - condition: state
+                entity_id: !input door_entity
+                state: "on"
+        sequence:
+          - service: input_boolean.turn_off
+            data: {}
+            target:
+              entity_id:
+                - !input occupancy_tracking
+                - !input presence_indicator
+      - conditions: 
+          - condition: and
+            conditions:
+              - condition: template
+                value_template: "{{ trigger.to_state.attributes.device_class == 'door' and trigger.to_state.state == 'on' }}"
+        sequence:
+          - service: input_boolean.turn_on
+            data: {}
+            target:
+              entity_id: !input presence_indicator
+          - delay: !input door_open_motion_wait
+          - if:
+              - condition: template
+                value_template: >
+                  {% set ns = namespace(no_motion = true) %}
+                  {% for entity_id in motion_entities %}
+                    {% set entity_state = states(entity_id) %}
+                    {% if entity_state == 'on' %}
+                      {% set ns.no_motion = false %}
+                    {% endif %}
+                  {% endfor %}
+                  {{ ns.no_motion }}
+            then:
+              - service: input_boolean.turn_off
+                data: {}
+                target:
+                  entity_id: !input presence_indicator
+      - conditions: 
+          - condition: and
+            conditions:
+              - condition: template
+                value_template: "{{ trigger.to_state.attributes.device_class == 'door' and trigger.to_state.state == 'off' and states(occupancy_tracking) == 'on' }}"
+        sequence:
+          - service: input_boolean.turn_off
+            data: {}
+            target:
+              entity_id:
+                - !input occupancy_tracking
+                - !input presence_indicator
+    default:
+      - service: input_boolean.turn_off
+        data: {}
+        target:
+          entity_id: !input presence_indicator
