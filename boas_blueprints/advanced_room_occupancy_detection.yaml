@@ -158,20 +158,3 @@ action:
                 data: {}
                 target:
                   entity_id: !input presence_indicator
-      - conditions: 
-          - condition: and
-            conditions:
-              - condition: template
-                value_template: "{{ trigger.to_state.attributes.device_class == 'door' and trigger.to_state.state == 'off' and states(occupancy_tracking) == 'on' }}"
-        sequence:
-          - service: input_boolean.turn_off
-            data: {}
-            target:
-              entity_id:
-                - !input occupancy_tracking
-                - !input presence_indicator
-    default:
-      - service: input_boolean.turn_off
-        data: {}
-        target:
-          entity_id: !input presence_indicator
