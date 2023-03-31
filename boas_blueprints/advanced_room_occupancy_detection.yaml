@@ -79,6 +79,17 @@ action:
   - variables:
       trigger_class: "{{ trigger.to_state.attributes.device_class }}"
   - choose:
+      - conditions: 
+          - condition: and
+            conditions:
+              - condition: template
+                value_template: "{{ trigger.to_state.attributes.device_class == 'door' and states(occupancy_tracking) == 'on' }}"
+        sequence:
+          - service: input_boolean.turn_off
+            data: {}
+            target:
+              entity_id:
+                - !input occupancy_tracking
       - conditions:
           - condition: and
             conditions:
@@ -119,7 +130,7 @@ action:
           - condition: and
             conditions:
               - condition: template
-                value_template: "{{ trigger.to_state.attributes.device_class == 'door' and trigger.to_state.state == 'on' }}"
+                value_template: "{{ trigger.to_state.attributes.device_class == 'door' and trigger.to_state.state == 'on' and states(occupancy_tracking) == 'off' }}"
         sequence:
           - service: input_boolean.turn_on
             data: {}
@@ -142,14 +153,3 @@ action:
                 data: {}
                 target:
                   entity_id: !input presence_indicator
-      - conditions: 
-          - condition: and
-            conditions:
-              - condition: template
-                value_template: "{{ trigger.to_state.attributes.device_class == 'door' and trigger.to_state.state == 'off' and states(occupancy_tracking) == 'on' }}"
-        sequence:
-          - service: input_boolean.turn_off
-            data: {}
-            target:
-              entity_id:
-                - !input occupancy_tracking
