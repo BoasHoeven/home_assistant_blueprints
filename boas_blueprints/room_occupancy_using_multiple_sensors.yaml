@@ -1,0 +1,76 @@
+blueprint:
+  name: Room Occupancy Using Multiple Sensors
+  description: This blueprint uses multiple sensors to detect room occupancy.
+  source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/boas_blueprints/advanced_room_occupancy_detection.yaml
+  domain: automation
+  input:
+    motion_entities:
+      name: Motion Sensors
+      description: Motion sensor entities that will be used for detecting presence in the room.
+      default: []
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: motion
+          multiple: true
+    door_entity:
+      name: Door Sensor
+      description: The door sensor entity responsible for monitoring the door's status.
+      default: []
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: door
+    presence_entity:
+      name: Presence sensor used to detect if someone is inside the room
+      description: Presence sensor entity that will be used for detecting presence in the room.
+      default: ''
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: presence
+    light_entities:
+      name: Light
+      selector:
+        target:
+          entity:
+            domain: light
+
+variables:
+  var_presence_entity: !input presence_entity
+
+mode: queued
+max: 25
+max_exceeded: silent
+
+trigger:
+  - platform: state
+    entity_id: !input motion_entities
+    to:
+      - 'on'
+      - 'off'
+  - platform: state
+    entity_id: !input door_entity
+    to:
+      - 'on'
+      - 'off'
+  - platform: state
+    entity_id: !input presence_entity
+    to:
+      - 'on'
+      - 'off'
+
+action:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.to_state.attributes.device_class == 'motion' and trigger.to_state.state == 'on' }}"
+        sequence:
+          - service: light.turn_on
+            target: !input light_entities
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.to_state.state == 'off' and states(var_presence_entity) == 'off' }}"
+        sequence:
+          - service: light.turn_off
+            target: !input light_entities
