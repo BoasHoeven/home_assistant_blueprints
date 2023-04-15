@@ -13,14 +13,6 @@ blueprint:
           domain: binary_sensor
           device_class: motion
           multiple: true
-    door_entity:
-      name: Door Sensor
-      description: The door sensor entity responsible for monitoring the door's status.
-      default: []
-      selector:
-        entity:
-          domain: binary_sensor
-          device_class: door
     presence_entity:
       name: Presence sensor used to detect if someone is inside the room
       description: Presence sensor entity that will be used for detecting presence in the room.
@@ -29,6 +21,13 @@ blueprint:
         entity:
           domain: binary_sensor
           device_class: presence
+    bathroom_presence_entity:
+      name: Bathroom Presence Sensor
+      description: The bathroom presence sensor entity responsible for monitoring presence events.
+      default: ''
+      selector:
+        entity:
+          domain: sensor
     light_entities:
       name: Light
       selector:
@@ -51,7 +50,7 @@ blueprint:
       selector:
         number:
           min: 0
-          max: 60
+          max: 3
           unit_of_measurement: seconds
     turn_off_transition_duration:
       name: Turn off transition duration
@@ -65,6 +64,7 @@ blueprint:
 
 variables:
   var_presence_entity: !input presence_entity
+  var_bathroom_presence_entity: !input bathroom_presence_entity
 
 mode: queued
 max: 25
@@ -77,21 +77,22 @@ trigger:
       - 'on'
       - 'off'
   - platform: state
-    entity_id: !input door_entity
-    to:
-      - 'on'
-      - 'off'
-  - platform: state
     entity_id: !input presence_entity
     to:
       - 'on'
       - 'off'
+  - platform: state
+    entity_id: !input bathroom_presence_entity
+    attribute: presence_event
+    to:
+      - 'leave'
+      - 'approach'
 
 action:
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ trigger.to_state.state == 'on' }}"
+            value_template: "{{ trigger.to_state.state == 'on' or (trigger.entity_id == var_bathroom_presence_entity and trigger.to_state.attributes.presence_event == 'approach') }}"
         sequence:
           - service: light.turn_on
             target: !input light_entities
@@ -100,9 +101,13 @@ action:
               transition: !input turn_on_transition_duration
       - conditions:
           - condition: template
-            value_template: "{{ trigger.to_state.attributes.device_class != 'door' and trigger.to_state.state == 'off' and states(var_presence_entity) == 'off' }}"
+            value_template: "{{ trigger.to_state.state == 'off' or (trigger.entity_id == var_bathroom_presence_entity and trigger.to_state.attributes.presence_event == 'leave') }}"
         sequence:
+          - condition: state
+            entity_id: !input presence_entity
+            state: 'off'
           - service: light.turn_off
+            target: !input light_entities
             data:
               transition: !input turn_off_transition_duration
-            target: !input light_entities
+
