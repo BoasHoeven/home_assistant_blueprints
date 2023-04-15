@@ -35,6 +35,15 @@ blueprint:
         target:
           entity:
             domain: light
+    transition_duration:
+      name: Transition duration
+      description: Time in seconds for the light to turn off gradually.
+      default: 10
+      selector:
+        number:
+          min: 1
+          max: 60
+          unit_of_measurement: seconds
 
 variables:
   var_presence_entity: !input presence_entity
@@ -64,13 +73,15 @@ action:
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ trigger.to_state.attributes.device_class == 'motion' and trigger.to_state.state == 'on' }}"
+            value_template: "{{ trigger.to_state.state == 'on' }}"
         sequence:
           - service: light.turn_on
             target: !input light_entities
       - conditions:
           - condition: template
-            value_template: "{{ trigger.to_state.state == 'off' and states(var_presence_entity) == 'off' }}"
+            value_template: "{{ trigger.to_state.attributes.device_class != 'door' and trigger.to_state.state == 'off' and states(var_presence_entity) == 'off' }}"
         sequence:
           - service: light.turn_off
+            data:
+              transition: !input transition_duration
             target: !input light_entities
