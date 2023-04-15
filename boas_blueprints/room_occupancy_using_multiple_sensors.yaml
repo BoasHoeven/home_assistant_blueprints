@@ -35,8 +35,26 @@ blueprint:
         target:
           entity:
             domain: light
-    transition_duration:
-      name: Transition duration
+    brightness_percentage:
+      name: Brightness percentage
+      description: Brightness level in percentage for the light to turn on.
+      default: 100
+      selector:
+        number:
+          min: 1
+          max: 100
+          unit_of_measurement: '%'
+    turn_on_transition_duration:
+      name: Turn on transition duration
+      description: Time in seconds for the light to turn on gradually.
+      default: 1
+      selector:
+        number:
+          min: .1
+          max: 5
+          unit_of_measurement: seconds
+    turn_off_transition_duration:
+      name: Turn off transition duration
       description: Time in seconds for the light to turn off gradually.
       default: 10
       selector:
@@ -77,11 +95,14 @@ action:
         sequence:
           - service: light.turn_on
             target: !input light_entities
+            data:
+              brightness_pct: !input brightness_percentage
+              transition: !input turn_on_transition_duration
       - conditions:
           - condition: template
             value_template: "{{ trigger.to_state.attributes.device_class != 'door' and trigger.to_state.state == 'off' and states(var_presence_entity) == 'off' }}"
         sequence:
           - service: light.turn_off
             data:
-              transition: !input transition_duration
+              transition: !input turn_off_transition_duration
             target: !input light_entities
