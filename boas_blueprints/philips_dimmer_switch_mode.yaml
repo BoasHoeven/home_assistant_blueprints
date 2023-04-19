@@ -1,0 +1,188 @@
+blueprint:
+  name: Philips Hue Mode Test (Alpha Version)
+  description: Bind multiple actions to the same button and change these actions by pressing the hue button
+  source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/boas_blueprints/philips_dimmer_switch.yaml
+  domain: automation
+  input:
+    dimmer_switch:
+      name: Philips Hue Dimmer Switch Action
+      description: The action sensor of the Philips Hue Dimmer Switch
+      default: ""
+      selector:
+        entity:
+          domain: sensor
+    on_press_action_mode_1:
+      name: On Button - Single Press Action (Mode 1)
+      description: Action to execute when the On button is pressed once when mode 1 is activated
+      default: []
+      selector:
+        action:
+    on_press_action_mode_2:
+      name: On Button - Single Press Action (Mode 2)
+      description: Action to execute when the On button is pressed once when mode 2 is activated
+      default: []
+      selector:
+        action:
+    up_press_action_mode_1:
+      name: Up Button - Single Press Action (Mode 1)
+      description: Action to execute when the Up button is pressed once when mode 1 is activated
+      default: []
+      selector:
+        action:
+    up_press_action_mode_2:
+      name: Up Button - Single Press Action (Mode 2)
+      description: Action to execute when the Up button is pressed once when mode 2 is activated
+      default: []
+      selector:
+        action:
+    down_press_action_mode_1:
+      name: Down Button - Single Press Action (Mode 1)
+      description: Action to execute when the Down button is pressed once when mode 1 is activated
+      default: []
+      selector:
+        action:
+    down_press_action_mode_2:
+      name: Down Button - Single Press Action (Mode 2)
+      description: Action to execute when the Down button is pressed once when mode 2 is activated
+      default: []
+      selector:
+        action:
+    button_press_history:
+      name: Required to store the last state
+      description: Button press history input text
+      default: ""
+      selector:
+        entity:
+          domain: input_text
+    mode_bool:
+      name: Required to store the current mode
+      description: Used to switch between lights
+      default: ""
+      selector:
+        entity:
+          domain: input_boolean
+    double_click_interval:
+      name: Double Click Interval
+      description: Time in seconds to consider as a double click
+      default: 0.3
+      selector:
+        number:
+          min: 0.1
+          max: 2
+          step: 0.1
+          unit_of_measurement: seconds
+          mode: slider
+variables:
+  button_history: !input button_press_history
+  var_double_click_interval: !input double_click_interval
+  var_mode_bool: !input mode_bool
+mode: restart
+max_exceeded: silent
+
+trigger:
+  - platform: state
+    entity_id: !input dimmer_switch
+    to:
+      - on_press
+      - up_press
+      - down_press
+      - off_press
+
+action:
+  - variables:
+      button_state: "{{ trigger.to_state.state }}"
+      current_time: "{{ as_timestamp(now()) }}"
+      is_cool_down: >
+        {% if states(button_history) | regex_match("^\\{'b': '(on_press|off_press|up_press|down_press)', 't': '\\d+(\\.\\d+)?'\\}$") %}
+          {{ false }}
+        {% else %}
+          {{ true }}
+        {% endif %}
+      last_state: >
+        {% if states(button_history) | regex_match("^\\{'b': '(on_press|off_press|up_press|down_press)', 't': '\\d+(\\.\\d+)?'\\}$") %}
+          {{ states(button_history) }} 
+        {% else %}
+          {{ "{'b': '" ~ button_state ~ "', 't': '" ~ current_time ~ "'}" }}
+        {% endif %}
+      debug_dict_value: >
+        {% set last_state_fixed_quotes = last_state | replace("'", "\"") %}
+        {% set last_state_dict = last_state_fixed_quotes | from_json %}
+        {{ last_state_dict['b'] }}
+      last_pressed: >
+        {% set last_state_fixed_quotes = last_state | replace("'", "\"") %}
+        {% set last_state_dict = last_state_fixed_quotes | from_json %}
+        {{ last_state_dict['t'] }}
+      time_delta: "{{ current_time - (last_pressed|float) }}"
+      same_button_press: >
+        {% set last_state_fixed_quotes = last_state | replace("'", "\"") %}
+        {% set last_state_dict = last_state_fixed_quotes | from_json %}
+        {% if last_state_dict['b'] == button_state %}
+          {{ true }}
+        {% else %}
+          {{ false }}
+        {% endif %}
+      is_double_press: >
+        {% if not is_cool_down and same_button_press and time_delta <= var_double_click_interval %}
+          {{ true }}
+        {% else %}
+          {{ false }}
+        {% endif %}
+
+  - service: input_text.set_value
+    target:
+      entity_id: !input button_press_history
+    data:
+      value: >
+        {% if is_double_press %}
+          {{ "{'b': 'cooldown', 't': '" ~ current_time ~ "'}" }}
+        {% else %}
+          {{ "{'b': '" ~ button_state ~ "', 't': '" ~ current_time ~ "'}" }}
+        {% endif %}
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ button_state == 'on_press' }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ states(var_mode_bool) == 'off' }}"
+                sequence: !input on_press_action_mode_1
+              - conditions:
+                  - condition: template
+                    value_template: "{{ states(var_mode_bool) == 'on' }}"
+                sequence: !input on_press_action_mode_2
+      - conditions:
+          - condition: template
+            value_template: "{{ button_state == 'up_press' }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ states(var_mode_bool) == 'off' }}"
+                sequence: !input up_press_action_mode_1
+              - conditions:
+                  - condition: template
+                    value_template: "{{ states(var_mode_bool) == 'on' }}"
+                sequence: !input up_press_action_mode_2
+      - conditions:
+          - condition: template
+            value_template: "{{ button_state == 'down_press' }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ states(var_mode_bool) == 'off' }}"
+                sequence: !input down_press_action_mode_1
+              - conditions:
+                  - condition: template
+                    value_template: "{{ states(var_mode_bool) == 'on' }}"
+                sequence: !input down_press_action_mode_2
+      - conditions:
+          - condition: template
+            value_template: "{{ button_state == 'off_press' }}"
+        sequence:
+          - service: input_boolean.toggle
+            data: {}
+            target:
+              entity_id: !input mode_bool
