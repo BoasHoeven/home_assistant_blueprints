@@ -1,7 +1,7 @@
 blueprint:
   name: Advanced Room Occupancy Detection
   description: This blueprint is designed for rooms with a single door and one or multiple motion sensors to detect occupancy.
-  source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/boas_blueprints/advanced_room_occupancy_detection.yaml
+  source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/blueprints/advanced_room_occupancy_detection.yaml
   domain: automation
   input:
     motion_entities:

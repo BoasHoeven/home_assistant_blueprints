@@ -1,7 +1,7 @@
 blueprint:
   name: Occupancy Triggered Light with Time Range
   description:  Turn on a light with adaptive brightness and color temperature when motion is detected or a door is opened within a specified time range.
-  source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/boas_blueprints/adaptive_light_occupancy_trigger.yaml
+  source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/blueprints/adaptive_light_occupancy_trigger.yaml
   domain: automation
   input:
     light_target:

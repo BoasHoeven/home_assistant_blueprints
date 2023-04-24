@@ -2,7 +2,7 @@ blueprint:
   name: Adaptive Motion and Door-Activated Light with Time Range
   description: >
     This blueprint turns on a light with adaptive brightness and color temperature when motion is detected or a door is opened within a specified time range. Customize the light's settings and timings to suit your needs.
-  source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/boas_blueprints/adaptive_light.yaml
+  source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/blueprints/adaptive_light.yaml
   domain: automation
   input:
     motion_entity:

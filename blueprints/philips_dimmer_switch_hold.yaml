@@ -1,7 +1,7 @@
 blueprint:
   name: Philips Hue Dimmer Switch v2
   description: Bind single/double press actions to buttons
-  source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/boas_blueprints/philips_dimmer_switch.yaml
+  source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/blueprints/philips_dimmer_switch_hold.yaml
   domain: automation
   input:
     dimmer_switch:
@@ -20,6 +20,12 @@ blueprint:
     double_on_press_action:
       name: On Button - Double Press Action
       description: Action to execute when the On button is pressed twice
+      default: []
+      selector:
+        action:
+    on_hold_action:
+      name: On Button - On Hold Action
+      description: Action to execute when the On button is held
       default: []
       selector:
         action:
@@ -59,6 +65,12 @@ blueprint:
       default: []
       selector:
         action:
+    off_hold_action:
+      name: Off Button - On Hold Action
+      description: Action to execute when the Off button is held
+      default: []
+      selector:
+        action:
     double_click_interval:
       name: Double Click Interval
       description: Time in seconds to consider as a double click
@@ -83,10 +95,10 @@ variables:
   button_press_history: !input button_press_history
   double_click_interval: !input double_click_interval
   buttons_dictionary: >
-    {% if states(button_press_history) | regex_match("^\{'on_press': '\d+(\.\d+)?', 'up_press': '\d+(\.\d+)?', 'down_press': '\d+(\.\d+)?', 'off_press': '\d+(\.\d+)?'\}$") %}
+    {% if states(button_press_history) | regex_match("^\{'on_press_release': '\d+(\.\d+)?', 'on_hold': '\d+(\.\d+)?', 'up_press_release': '\d+(\.\d+)?', 'down_press_release': '\d+(\.\d+)?', 'off_press_release': '\d+(\.\d+)?', 'off_hold': '\d+(\.\d+)?'\}$") %}
       {{ states(button_press_history)|to_json }}
     {% else %}
-      {{"{'on_press': '0', 'up_press': '0', 'down_press': '0', 'off_press': '0'}" | to_json}}
+      {{"{'on_press_release': '0', 'on_hold': '0', 'up_press_release': '0', 'down_press_release': '0', 'off_press_release': '0', 'off_hold': '0'}" | to_json}}
     {% endif %}
 
 mode: restart
@@ -96,10 +108,14 @@ trigger:
   - platform: state
     entity_id: !input dimmer_switch
     to: 
-      - on_press
-      - up_press
-      - down_press
-      - off_press
+      - on_press_release
+      - on_hold
+      - on_hold_release
+      - up_press_release
+      - down_press_release
+      - off_press_release
+      - off_hold
+      - off_hold_release
 
 action:
   - variables:
@@ -107,27 +123,48 @@ action:
       current_time: "{{ as_timestamp(now()) }}"
       my_dict: "{{ buttons_dictionary | from_json }}"
       last_press_time: "{{ my_dict[payload] }}"
-      delta: "{{ current_time - (last_press_time|float) }}"
   - service: input_text.set_value
     target:
       entity_id: !input button_press_history
     data:
       value: >
-        {% set my_dict_updated = dict(my_dict, **{payload: current_time | string}) %}
+        {% if "hold" in payload and not "release" in payload %}
+          {% if my_dict[payload] | int < 10 %}
+              {% set my_dict_updated = dict(my_dict, **{payload: (my_dict[payload] | int + 1) | string}) %}
+          {% else %}
+              {% set my_dict_updated = dict(my_dict, **{payload: "10"}) %}
+          {% endif %}
+        {% else %}
+          {% if not "hold" in payload  %}
+            {% set my_dict_updated = dict(my_dict, **{payload: current_time | string}) %}
+          {% else %}
+            {% set my_dict_updated = my_dict %}
+          {% endif %}
+          {% set my_dict_updated = dict(my_dict_updated, **{'on_hold': '0' | string}) %}
+          {% set my_dict_updated = dict(my_dict_updated, **{'off_hold': '0' | string}) %}
+        {% endif %}
         {{ my_dict_updated | string }}
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ payload == 'on_press' }}"
+            value_template: "{{ payload == 'on_hold' and last_press_time == 0 }}"
+        sequence: !input on_hold_action
+      - conditions:
+          - condition: template
+            value_template: "{{ payload == 'off_hold' and last_press_time == 0 }}"
+        sequence: !input off_hold_action
+      - conditions:
+          - condition: template
+            value_template: "{{ payload == 'on_press_release' }}"
         sequence:
           - choose:
               - conditions:
                   - condition: template
-                    value_template: "{{ (delta < double_click_interval) }}"
+                    value_template: "{{ (current_time - (last_press_time|float) < double_click_interval) }}"
                 sequence: !input double_on_press_action
               - conditions:
                   - condition: template
-                    value_template: "{{ (delta > double_click_interval) }}"
+                    value_template: "{{ (current_time - (last_press_time|float) > double_click_interval) }}"
                 sequence:
                   - choose:
                       - conditions:
@@ -145,16 +182,16 @@ action:
                         sequence: !input on_press_action
       - conditions:
           - condition: template
-            value_template: "{{ payload == 'up_press' }}"
+            value_template: "{{ payload == 'up_press_release' }}"
         sequence:
           - choose:
               - conditions:
                   - condition: template
-                    value_template: "{{ (delta < double_click_interval) }}"
+                    value_template: "{{ (current_time - (last_press_time|float) < double_click_interval) }}"
                 sequence: !input double_up_press_action
               - conditions:
                   - condition: template
-                    value_template: "{{ (delta > double_click_interval) }}"
+                    value_template: "{{ (current_time - (last_press_time|float) > double_click_interval) }}"
                 sequence:
                   - choose:
                       - conditions:
@@ -172,16 +209,16 @@ action:
                         sequence: !input up_press_action
       - conditions:
           - condition: template
-            value_template: "{{ payload == 'down_press' }}"
+            value_template: "{{ payload == 'down_press_release' }}"
         sequence:
           - choose:
               - conditions:
                   - condition: template
-                    value_template: "{{ (delta < double_click_interval) }}"
+                    value_template: "{{ (current_time - (last_press_time|float) < double_click_interval) }}"
                 sequence: !input double_down_press_action
               - conditions:
                   - condition: template
-                    value_template: "{{ (delta > double_click_interval) }}"
+                    value_template: "{{ (current_time - (last_press_time|float) > double_click_interval) }}"
                 sequence:
                   - delay:
                       seconds: '{{ double_click_interval }}'
@@ -190,16 +227,16 @@ action:
                         sequence: !input down_press_action
       - conditions:
           - condition: template
-            value_template: "{{ payload == 'off_press' }}"
+            value_template: "{{ payload == 'off_press_release' }}"
         sequence:
           - choose:
               - conditions:
                   - condition: template
-                    value_template: "{{ (delta < double_click_interval) }}"
+                    value_template: "{{ (current_time - (last_press_time|float) < double_click_interval) }}"
                 sequence: !input double_off_press_action
               - conditions:
                   - condition: template
-                    value_template: "{{ (delta > double_click_interval) }}"
+                    value_template: "{{ (current_time - (last_press_time|float) > double_click_interval) }}"
                 sequence:
                   - delay:
                       seconds: '{{ double_click_interval }}'

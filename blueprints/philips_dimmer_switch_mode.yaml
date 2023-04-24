@@ -1,7 +1,7 @@
 blueprint:
   name: Philips Hue Mode Test (Alpha Version)
   description: Bind multiple actions to the same button and change these actions by pressing the hue button
-  source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/boas_blueprints/philips_dimmer_switch.yaml
+  source_url: https://github.com/BoasHoeven/home_assistant_blueprints/blob/main/blueprints/philips_dimmer_switch.yaml
   domain: automation
   input:
     dimmer_switch:
