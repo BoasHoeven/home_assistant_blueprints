@@ -108,10 +108,20 @@ blueprint:
       default: "00:00:00"
       selector:
         time: {}
+    door_open_motion_wait:
+      name: Motion Detection Wait Time After Door Opening
+      description: Defines the waiting period for motion detection after the door is opened before turning off the lights.
+      default:
+        hours: 0
+        minutes: 0
+        seconds: 5
+      selector:
+        duration:        
 
 variables:
   var_presence_entity: !input presence_entity
   var_presence_event_entity: !input presence_event_entity
+  var_motion_entities: !input motion_entities
   var_door_entity: !input door_entity
   start_time: !input start_time
   end_time: !input end_time
@@ -136,7 +146,6 @@ trigger:
     entity_id: !input door_entity
     to:
       - "on"
-      - "off"
   - platform: state
     entity_id: !input presence_entity
     to:
@@ -153,7 +162,81 @@ action:
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ trigger.to_state.state == 'on' or (trigger.entity_id == var_presence_event_entity and trigger.to_state.attributes.presence_event == 'approach') or (trigger.entity_id == var_door_entity and trigger.to_state.state == 'on') }}"
+            value_template: "{{ trigger.entity_id == var_door_entity and trigger.to_state.state == 'on' }}"
+        sequence:
+          - service: light.turn_on
+            target: !input light_entities
+            data:
+              color_temp: >-
+                {% set start_time_minutes = strptime(start_time, '%H:%M:%S').hour * 60 + strptime(start_time, '%H:%M:%S').minute %}
+                {% set end_time_minutes = strptime(end_time, '%H:%M:%S').hour * 60 + strptime(end_time, '%H:%M:%S').minute %}
+                {% if end_time_minutes <= start_time_minutes %}
+                  {% set end_time_minutes = end_time_minutes + 24 * 60 %}
+                {% endif %}
+                {% set duration_minutes = end_time_minutes - start_time_minutes %}
+
+                {% set hour = now().hour %}
+                {% set minute = now().minute %}
+                {% set total_minutes = hour * 60 + minute %}
+
+                {% set elapsed_minutes = total_minutes - start_time_minutes %}
+                {% set progress = (elapsed_minutes / duration_minutes) ** (1 / color_change_speed) %}
+
+                {% if total_minutes >= start_time_minutes and total_minutes <= end_time_minutes %}
+                  {{ (min_color_temp + (max_color_temp - min_color_temp) * progress) | float }}
+                {% else %}
+                  {{ max_color_temp }}
+                {% endif %}
+              brightness_pct: >-
+                {% set start_time_minutes = strptime(start_time, '%H:%M:%S').hour * 60 + strptime(start_time, '%H:%M:%S').minute %}
+                {% set end_time_minutes = strptime(end_time, '%H:%M:%S').hour * 60 + strptime(end_time, '%H:%M:%S').minute %}
+                {% if end_time_minutes <= start_time_minutes %}
+                  {% set end_time_minutes = end_time_minutes + 24 * 60 %}
+                {% endif %}
+                {% set duration_minutes = end_time_minutes - start_time_minutes %}
+
+                {% set hour = now().hour %}
+                {% set minute = now().minute %}
+                {% set total_minutes = hour * 60 + minute %}
+
+                {% set elapsed_minutes = total_minutes - start_time_minutes %}
+                {% set progress = elapsed_minutes / duration_minutes %}
+
+                {% set triangle_progress = 0 %}
+                {% if progress <= 0.5 %}
+                  {% set triangle_progress = progress * 2 %}
+                {% else %}
+                  {% set triangle_progress = 2 * (1 - progress) %}
+                {% endif %}
+                {% set adjusted_triangle_progress = triangle_progress / brightness_change_speed %}
+                {% if adjusted_triangle_progress > 1 %}
+                  {% set adjusted_triangle_progress = 1 %}
+                {% elif adjusted_triangle_progress < 0 %}
+                  {% set adjusted_triangle_progress = 0 %}
+                {% endif %}
+                {% if total_minutes < start_time_minutes or total_minutes > end_time_minutes %}
+                  {{ min_brightness }}
+                {% else %}
+                  {{ (min_brightness + (max_brightness - min_brightness) * adjusted_triangle_progress) }}
+                {% endif %}
+          - delay: !input door_open_motion_wait
+          - if:
+              - condition: template
+                value_template: >
+                  {% set ns = namespace(no_motion = true) %}
+                  {% for entity_id in var_motion_entities %}
+                    {% set entity_state = states(entity_id) %}
+                    {% if entity_state == 'on' %}
+                      {% set ns.no_motion = false %}
+                    {% endif %}
+                  {% endfor %}
+                  {{ ns.no_motion }}
+            then:
+              - service: light.turn_off
+                target: !input light_entities
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.to_state.state == 'on' or (trigger.entity_id == var_presence_event_entity and trigger.to_state.attributes.presence_event == 'approach') }}"
         sequence:
           - service: light.turn_on
             target: !input light_entities
